@@ -140,7 +140,7 @@
             // // change status to indicate the success of the upload request
             // file.status = response.ok
 
-            await axios.post('http://localhost/files/upload.php', formData,{
+            await axios.post('https://vinodvaswani315.github.io/vuejsmultifileupload/upload.php', formData,{
             onUploadProgress: progressEvent => {
               // this.percentage = ((progressEvent.loaded / progressEvent.total ) * 100).toFixed()
               file.percentage = ((progressEvent.loaded / progressEvent.total ) * 100).toFixed()
