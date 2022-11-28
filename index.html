@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Vue in Browser</title>
+    <style>
+      h1 {
+  margin: 0 auto;
+  margin-top: 5rem;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.image-preview-container {
+  width: 50%;
+  margin: 0 auto;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 3rem;
+  border-radius: 20px;
+}
+
+.image-preview-container img {
+  width: 100%;
+  /* display: none; */
+  margin-bottom: 30px;
+}
+
+.img-preview
+{
+  height: 200px!important;
+  width: 200px!important;
+}
+.image-preview-container input {
+  display: none;
+}
+
+.image-preview-container label {
+  display: block;
+  width: 45%;
+  height: 45px;
+  margin-left: 25%;
+  text-align: center;
+  background: #8338ec;
+  color: #fff;
+  font-size: 15px;
+  text-transform: Uppercase;
+  font-weight: 400;
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-wrapper
+{
+  position: relative;
+  width: 200px;
+  height: 200px;
+}
+.remove-file
+{
+  position: absolute;
+  bottom: 0;
+  right: 0;
+}
+  </style>
+
+  <!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  </head>
+  <body>
+
+    <div id="app">
+      
+      <div class="image-preview-container">
+        <div class="preview">
+        </div>
+        <label for="file-upload">Upload Image</label>
+        <input type="file" id="file-upload" multiple="multiple"  @change="previewImage($event);" />
+
+        <template v-for="file in files">
+          <img :src="file" alt="File">
+        </template>
+        <div class="progress">
+          <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" :aria-valuenow="percentage" aria-valuemin="0" aria-valuemax="100" :style="{'width': percentage+'%'}"></div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script>
+      const { createApp } = Vue
+        createApp({
+          data() {
+            return {
+              percentage: 0,
+              files:[]
+            }
+          },
+        mounted(){
+          
+        },
+        methods:{
+        previewImage(event)
+        {
+          /**
+           * Get the selected files.
+           */
+          const imageFiles = event.target.files;
+          /**
+           * Count the number of files selected.
+           */
+          const imageFilesLength = imageFiles.length;
+
+          /**
+           * If at least one image is selected, then proceed to display the preview.
+           */
+
+          var formData = new FormData();
+
+          
+          if (imageFilesLength > 0)
+          {
+            for( var i = 0; i < imageFilesLength; i++ )
+            {
+
+                formData.append("file"+i, imageFiles[i]);
+
+                /**
+                * Get the image path.
+                */
+                const imageSrc = URL.createObjectURL(imageFiles[i]);
+                /**
+                * Select the image preview element.
+                */
+                const previewContainer = document.querySelector(".preview");
+
+
+                // create a Image Wrapper
+                const imageWrapper = document.createElement("div");
+                imageWrapper.className = "file-wrapper";
+
+
+                // create a Remove Button
+                const removeButton = document.createElement("button");
+                removeButton.classList = "remove-file";
+                removeButton.innerText = "Remove";
+
+
+                var img = document.createElement('img');
+                img.src = imageSrc;
+                img.classList.add("img-preview");
+
+
+                imageWrapper.appendChild(img);
+                imageWrapper.appendChild(removeButton);
+                previewContainer.appendChild(imageWrapper);
+
+            }
+          }
+
+
+          axios.post('http://localhost/files/upload.php', formData,{
+            onUploadProgress: progressEvent => {
+            
+              this.percentage = ((progressEvent.loaded / progressEvent.total ) * 100).toFixed()
+            
+            }
+          })
+          .then((response)=>{
+            this.files = response.data
+          },{
+          headers:{
+            'Content-Type': 'multipart/form-data'
+          }
+          })
+          .catch(function (error) {
+          console.log(error);
+          });
+
+
+        }  
+        }
+        }).mount('#app')
+    </script>
+  </body>
+</html>

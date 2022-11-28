@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Vue in Browser</title>
+    <style>
+   #app {
+  width: 100%;
+  padding: 15px;
+  border: 1px solid #333;
+  background: rgba(0,0,0,0.7);
+}
+.drop-area {
+  border: 2px dashed #bbb;
+  -webkit-border-radius: 5px;
+  border-radius: 5px;
+  padding: 50px;
+  text-align: center;
+  font: 21pt bold arial;
+  color: #bbb;
+}
+  </style>
+
+  <!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  </head>
+  <body>
+
+    <div id="app">
+        <!-- <multiupload api-url="http://localhost/files/upload.php"/> -->
+        <DropZone class="drop-area" @files-dropped="addFiles" #default="{ dropZoneActive }">
+          <label for="file-input">
+            <span v-if="dropZoneActive">
+              <span>Drop Them Here</span>
+              <span class="smaller"> to add them</span>
+            </span>
+            <span v-else>
+              <span>Drag Your Files Here</span>
+              <span class="smaller">
+                or <strong><em>click here</em></strong> to select files
+              </span>
+            </span>
+    
+            <input type="file" style="visibility: hidden;" id="file-input" multiple @change="onInputChange" />
+          </label>
+          <!-- <ul class="image-list" v-show="files.length">
+            <FilePreview v-for="file of files" :key="file.id" :file="file" tag="li" @remove="removeFile" />
+          </ul> -->
+          
+        </DropZone>
+
+        <ul v-show="files.length">
+          <li v-for="file of files" :key="file.id" class="mb-3">
+
+            <img width="200" height="200" :src="file.url"/>
+
+            <div class="text-primary">
+              {{file.name}}
+            </div>
+
+            <button @click="removeFile(file)" class="close-icon">&times;</button>
+
+
+            <div class="progress">
+              <div :ref="'progress_'+file.id" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" :aria-valuenow="file.percentage" aria-valuemin="0" aria-valuemax="100" :style="{'width': file.percentage+'%'}"></div>
+            </div>
+
+           </li>
+        </ul>
+
+        
+        <button @click.prevent="uploadFiles(files)" class="upload-button">Upload</button>
+       
+    </div>
+
+    
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script type="module">
+      import multiUpload from './multiUpload.js'
+      import dropZone from './dropZone.js'
+      import UploadableFile from './UploadableFile.js'
+
+      const { createApp } = Vue
+        createApp({
+          components: {
+          'multiupload':multiUpload,
+          'dropzone':dropZone,
+          },
+          data() {
+            return {
+              url: "http://localhost/files/upload.php",
+              files: [],
+              percentage: 0,
+            }
+          },
+        mounted(){
+        },
+        methods:{
+          onInputChange(e) {
+            this.addFiles(e.target.files)
+            e.target.value = null // reset so that selecting the same file again will still cause it to fire this change
+          },
+          addFiles(newFiles)
+          {
+              console.log(newFiles);
+
+              let newUploadableFiles = [...newFiles]
+              .map((file) => new UploadableFile(file))
+              .filter((file) => !this.fileExists(file.id))
+              
+              console.log(newUploadableFiles);
+
+              newUploadableFiles.forEach(element => {
+                this.files.push(element)
+              });
+                  
+          },
+          fileExists(otherId) {
+          return this.files.some(({ id }) => id === otherId)
+          },
+          removeFile(file) {
+            console.log("sdasda sda");
+          const index = this.files.indexOf(file)
+
+          if (index > -1) this.files.splice(index, 1)
+          },
+          async uploadFile(file) {
+
+            // set up the request data
+            let formData = new FormData()
+            formData.append('file', file.file)
+
+            var responseFiles = ""
+            
+            // track status and upload file
+            // file.status = 'loading'
+            // let response = await fetch(this.url, { method: 'POST', body: formData })
+
+            // // change status to indicate the success of the upload request
+            // file.status = response.ok
+
+            await axios.post('http://localhost/files/upload.php', formData,{
+            onUploadProgress: progressEvent => {
+              // this.percentage = ((progressEvent.loaded / progressEvent.total ) * 100).toFixed()
+              file.percentage = ((progressEvent.loaded / progressEvent.total ) * 100).toFixed()
+            }
+            })
+            .then((response)=>{
+              responseFiles = response.data
+              // this.percentage = 0
+            })
+            .catch(function (error) {
+            console.log(error);
+            });
+
+            
+            return responseFiles
+          },
+          uploadFiles(files) {
+            const res = Promise.all(files.map((file) => this.uploadFile(file)))
+            res.then((re)=>{
+              
+              console.log(re);
+
+            })
+          }
+        }
+        }).mount('#app')
+    </script>
+    <!-- <script>
+      const { createApp } = Vue
+        createApp({
+          data() {
+            return {
+              percentage: 0,
+              files:[]
+            }
+          },
+        mounted(){
+          
+        },
+        methods:{
+        previewImage(event)
+        {
+          /**
+           * Get the selected files.
+           */
+          const imageFiles = event.target.files;
+          /**
+           * Count the number of files selected.
+           */
+          const imageFilesLength = imageFiles.length;
+
+          /**
+           * If at least one image is selected, then proceed to display the preview.
+           */
+
+          var formData = new FormData();
+
+          
+          if (imageFilesLength > 0)
+          {
+            for( var i = 0; i < imageFilesLength; i++ )
+            {
+
+                formData.append("file"+i, imageFiles[i]);
+
+                /**
+                * Get the image path.
+                */
+                const imageSrc = URL.createObjectURL(imageFiles[i]);
+                /**
+                * Select the image preview element.
+                */
+                const previewContainer = document.querySelector(".preview");
+
+
+                // create a Image Wrapper
+                const imageWrapper = document.createElement("div");
+                imageWrapper.className = "file-wrapper";
+
+
+                // create a Remove Button
+                const removeButton = document.createElement("button");
+                removeButton.classList = "remove-file";
+                removeButton.innerText = "Remove";
+
+
+                var img = document.createElement('img');
+                img.src = imageSrc;
+                img.classList.add("img-preview");
+
+
+                imageWrapper.appendChild(img);
+                imageWrapper.appendChild(removeButton);
+                previewContainer.appendChild(imageWrapper);
+
+            }
+          }
+
+
+          axios.post('http://localhost/files/upload.php', formData,{
+            onUploadProgress: progressEvent => {
+            
+              this.percentage = ((progressEvent.loaded / progressEvent.total ) * 100).toFixed()
+            
+            }
+          })
+          .then((response)=>{
+            this.files = response.data
+          },{
+          headers:{
+            'Content-Type': 'multipart/form-data'
+          }
+          })
+          .catch(function (error) {
+          console.log(error);
+          });
+
+
+        }  
+        }
+        }).mount('#app')
+    </script> -->
+  </body>
+</html>
